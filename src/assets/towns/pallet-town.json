@@ -1,0 +1,67 @@
+{
+  "name": "Pallet Town",
+  "tiles": [
+    ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
+    [
+      "wall",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "wall"
+    ],
+    [
+      "wall",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "wall"
+    ],
+    [
+      "wall",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "wall"
+    ],
+    [
+      "wall",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "wall"
+    ],
+    [
+      "wall",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "wall"
+    ],
+    [
+      "wall",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "ground",
+      "wall"
+    ],
+    ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"]
+  ]
+}
