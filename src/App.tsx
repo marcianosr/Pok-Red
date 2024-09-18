@@ -7,7 +7,7 @@ type Grid = {
   type: Tile;
 }[][];
 
-const treeMapping = (value: number) => {
+const treeMapping = (value: number): Tile => {
   return "tree";
 };
 
@@ -55,13 +55,15 @@ const initializeForestRows = () => {
 };
 
 const generateForest = (random: () => number) => {
+  const forestSize = 20;
   const data = initializeForestRows(); // Create a 2D array for the entire forest/world grid
+  const treePatchSize = 4;
 
-  for (let i = 0; i < 20; i += 4) {
-    for (let j = 0; j < 20; j += 4) {
+  for (let i = 0; i < forestSize; i += treePatchSize) {
+    for (let j = 0; j < forestSize; j += treePatchSize) {
       const patchSize = {
-        x: 4,
-        y: 4,
+        x: treePatchSize,
+        y: treePatchSize,
       };
 
       generateTreePatches(random, data, i, j, patchSize);
