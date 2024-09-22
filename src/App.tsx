@@ -79,6 +79,8 @@ const placeGroundTile = (grid: Grid[][], x: number, y: number) => {
     return;
   }
 
+  console.log("placing ground tile at", x, y, grid[x][y]);
+
   grid[x][y] = {
     x,
     y,
@@ -91,53 +93,66 @@ const placePathTiles = (
   startCoords: {
     x: number;
     y: number;
-  } = {
-    // Default Always start at the bottom
-    x: FOREST_SIZE - 1,
-    y: 8,
   }
 ) => {
-  placeGroundTile(grid, startCoords.x, startCoords.y);
+  const directions = {
+    up: { x: startCoords.x - 1, y: startCoords.y },
+    down: { x: startCoords.x + 1, y: startCoords.y },
+    left: { x: startCoords.x, y: startCoords.y - 1 },
+    right: { x: startCoords.x, y: startCoords.y + 1 },
+  };
 
-  if (
+  const canMoveUp =
     startCoords.x - 1 >= 0 &&
-    grid[startCoords.x - 1][startCoords.y].type !== "tree"
-  ) {
-    startCoords.x -= 1; // Move up
-  }
-  // Ensure x doesn't exceed the grid boundary
-  else if (
+    grid[directions.up.x][directions.up.y].type !== "tree" &&
+    grid[directions.up.x][directions.up.y].type !== "ground";
+  const canMoveDown =
     startCoords.x + 1 < grid.length &&
-    grid[startCoords.x + 1][startCoords.y].type !== "tree"
-  ) {
-    startCoords.x += 1; // Move down
-  }
-  // Ensure the y coordinate is within grid boundaries
-  else if (
+    grid[directions.down.x][directions.down.y].type !== "tree" &&
+    grid[directions.down.x][directions.down.y].type !== "ground";
+  const canMoveLeft =
     startCoords.y - 1 >= 0 &&
-    grid[startCoords.x][startCoords.y - 1].type !== "tree"
-  ) {
-    startCoords.y -= 1; // Move left
-  }
-  // Ensure y doesn't exceed the grid boundary
-  else if (
+    grid[directions.left.x][directions.left.y].type !== "tree" &&
+    grid[directions.left.x][directions.left.y].type !== "ground";
+  const canMoveRight =
     startCoords.y + 1 < grid[0].length &&
-    grid[startCoords.x][startCoords.y + 1].type !== "tree"
-  ) {
-    startCoords.y += 1; // Move right
+    grid[directions.right.x][directions.right.y].type !== "tree" &&
+    grid[directions.right.x][directions.right.y].type !== "ground";
+
+  // Prioritize movement based on what directions are available
+  if (canMoveUp) {
+    startCoords.x -= 1;
+  } else if (canMoveRight) {
+    startCoords.y += 1;
+  } else if (canMoveLeft) {
+    startCoords.y -= 1;
+  } else if (canMoveDown) {
+    startCoords.x += 1;
   }
+
+  placeGroundTile(grid, startCoords.x, startCoords.y);
 };
 
 const generatePath = (grid: Grid[][]) => {
   // Always start at the bottom
   // Start with a path in the middle
-  const pathStartCoords = {
-    x: FOREST_SIZE - 1,
-    y: 9,
-  };
+
+  const zones = [
+    {
+      name: "Forest Entrance",
+      x: FOREST_SIZE - 1,
+      y: 9,
+    },
+    {
+      name: "Forest Exit",
+      x: 10,
+      y: 0,
+    },
+  ];
+
   for (let k = 0; k < 10; k++) {
-    // Pass pathStartCoords by reference
-    placePathTiles(grid, pathStartCoords);
+    // Pass zones by reference
+    placePathTiles(grid, zones[0]);
   }
 };
 
@@ -166,8 +181,6 @@ const generateForest = (random: () => number) => {
 
   const grid = initializeForestRows();
 
-  generatePath(grid);
-
   for (let i = 0; i < FOREST_SIZE; i += treePatchSize.x) {
     for (let j = 0; j < FOREST_SIZE; j += treePatchSize.y) {
       const isBorder = j === 0 || j === FOREST_SIZE - 1;
@@ -186,6 +199,10 @@ const generateForest = (random: () => number) => {
       }
     }
   }
+
+  // Call AFTER generating trees, so that the path doesn't overwrite trees
+
+  generatePath(grid);
 
   return grid;
 };
