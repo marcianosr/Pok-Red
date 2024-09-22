@@ -1,3 +1,14 @@
+// random seed van spel
+// sub random seeds
+// 5 templates van een patch en dan random 1 kiezen
+// en random positie bepalen
+// Character movement
+
+// opslaan wanneer je de wereld hebt gegenereerd. De NPC lopen meteen door.
+// timestamp en seed opslaan
+// epoch time for walking NPC:
+// als je NPC in beeld komt wil je "state" van de positie van de NPC
+
 import { mulberry32 } from "./mulberry32";
 
 type Tile = "grass" | "water" | "tree" | "ground" | "bush";
@@ -5,7 +16,8 @@ type Grid = {
   x: number;
   y: number;
   type: Tile;
-}[][];
+};
+const FOREST_SIZE = 20;
 
 const treeMapping = (value: number): Tile => {
   return "tree";
@@ -21,9 +33,19 @@ const tileColorMapping = (type: Tile) => {
   }[type];
 };
 
+const canPlaceTile = (grid: Grid[][], x: number, y: number) => {
+  // check if the tile is within the grid
+  if (x < 0 || y < 0 || x >= grid.length || y >= grid[0].length) {
+    return false;
+  }
+
+  // check if the tile is not already occupied
+  return grid[x][y].type === "grass" || grid[x][y].type === "ground";
+};
+
 const generateTreePatches = (
   random: () => number,
-  grid: Grid,
+  grid: Grid[][],
   startX: number,
   startY: number,
   patchSize: {
@@ -34,6 +56,9 @@ const generateTreePatches = (
   for (let i = 0; i < patchSize.x; i++) {
     for (let j = 0; j < patchSize.y; j++) {
       const tileType = treeMapping(random());
+      const canPlace = canPlaceTile(grid, startX + i, startY + j);
+
+      if (!canPlace) return;
 
       grid[startX + i][startY + j] = {
         x: startX + i,
@@ -46,31 +71,123 @@ const generateTreePatches = (
   return grid;
 };
 
-const initializeForestRows = () => {
-  const forestRows = [];
-  for (let i = 0; i < 20; i++) {
-    forestRows.push([]);
+const placeGroundTile = (grid: Grid[][], x: number, y: number) => {
+  const isOutOfBounds =
+    x < 0 || y < 0 || x >= grid.length || y >= grid[0].length;
+
+  if (isOutOfBounds) {
+    return;
   }
-  return forestRows;
+
+  grid[x][y] = {
+    x,
+    y,
+    type: "ground",
+  };
+};
+
+const placePathTiles = (
+  grid: Grid[][],
+  startCoords: {
+    x: number;
+    y: number;
+  } = {
+    // Default Always start at the bottom
+    x: FOREST_SIZE - 1,
+    y: 8,
+  }
+) => {
+  placeGroundTile(grid, startCoords.x, startCoords.y);
+
+  if (
+    startCoords.x - 1 >= 0 &&
+    grid[startCoords.x - 1][startCoords.y].type !== "tree"
+  ) {
+    startCoords.x -= 1; // Move up
+  }
+  // Ensure x doesn't exceed the grid boundary
+  else if (
+    startCoords.x + 1 < grid.length &&
+    grid[startCoords.x + 1][startCoords.y].type !== "tree"
+  ) {
+    startCoords.x += 1; // Move down
+  }
+  // Ensure the y coordinate is within grid boundaries
+  else if (
+    startCoords.y - 1 >= 0 &&
+    grid[startCoords.x][startCoords.y - 1].type !== "tree"
+  ) {
+    startCoords.y -= 1; // Move left
+  }
+  // Ensure y doesn't exceed the grid boundary
+  else if (
+    startCoords.y + 1 < grid[0].length &&
+    grid[startCoords.x][startCoords.y + 1].type !== "tree"
+  ) {
+    startCoords.y += 1; // Move right
+  }
+};
+
+const generatePath = (grid: Grid[][]) => {
+  // Always start at the bottom
+  // Start with a path in the middle
+  const pathStartCoords = {
+    x: FOREST_SIZE - 1,
+    y: 9,
+  };
+  for (let k = 0; k < 10; k++) {
+    // Pass pathStartCoords by reference
+    placePathTiles(grid, pathStartCoords);
+  }
 };
 
 const generateForest = (random: () => number) => {
-  const forestSize = 20;
-  const data = initializeForestRows(); // Create a 2D array for the entire forest/world grid
-  const treePatchSize = 4;
+  const treePatchSize = {
+    x: 1,
+    y: 1,
+  };
 
-  for (let i = 0; i < forestSize; i += treePatchSize) {
-    for (let j = 0; j < forestSize; j += treePatchSize) {
-      const patchSize = {
-        x: treePatchSize,
-        y: treePatchSize,
-      };
+  const initializeForestRows = () => {
+    const forestRows: Grid[][] = [];
+    const defaultTile = "grass";
+    for (let i = 0; i < FOREST_SIZE; i++) {
+      const row: Grid[] = [];
+      for (let j = 0; j < FOREST_SIZE; j++) {
+        row.push({
+          x: i,
+          y: j,
+          type: defaultTile,
+        });
+      }
+      forestRows.push(row);
+    }
+    return forestRows;
+  };
 
-      generateTreePatches(random, data, i, j, patchSize);
+  const grid = initializeForestRows();
+
+  generatePath(grid);
+
+  for (let i = 0; i < FOREST_SIZE; i += treePatchSize.x) {
+    for (let j = 0; j < FOREST_SIZE; j += treePatchSize.y) {
+      const isBorder = j === 0 || j === FOREST_SIZE - 1;
+
+      const dense = random() > 0.985;
+
+      if (dense) {
+        generateTreePatches(random, grid, i, j, {
+          x: 2,
+          y: 2,
+        });
+      }
+
+      if (isBorder) {
+        generateTreePatches(random, grid, i, j, treePatchSize);
+      }
     }
   }
 
-  return data;
+  return grid;
 };
 
 const renderWorld = (world: any) => {
@@ -78,17 +195,20 @@ const renderWorld = (world: any) => {
     return "no world";
   }
 
-  return world.map((tile: any, idx: number) => {
+  return world.map((tile: any, i: number) => {
     return (
-      <div className="flex" key={idx} data-row-idx={idx}>
-        {tile.map((subTile: any, idx: number) => {
+      <div className="flex" key={i} data-row-idx={i}>
+        {tile.map((subTile: any, j: number) => {
           return (
             <div
-              key={idx}
-              data-tile-idx={idx}
+              key={j}
+              data-tile-idx={j}
               className={`size-10 ${tileColorMapping(subTile.type)}`}
             >
-              {subTile.type}
+              {/* {subTile.type === "tree" ? "🌲" : "s"}/ */}
+              <span className="text-xs mx-auto">
+                {i},{j}
+              </span>
             </div>
           );
         })}
